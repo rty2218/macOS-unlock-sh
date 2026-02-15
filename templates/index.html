@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS 应用修复工具</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: rgba(255, 255, 255, 0.04);
+            --bg-card-hover: rgba(255, 255, 255, 0.07);
+            --bg-glass: rgba(255, 255, 255, 0.06);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #818cf8;
+            --accent-bright: #a5b4fc;
+            --success: #34d399;
+            --success-bg: rgba(52, 211, 153, 0.1);
+            --danger: #f87171;
+            --danger-bg: rgba(248, 113, 113, 0.1);
+            --warning: #fbbf24;
+            --warning-bg: rgba(251, 191, 36, 0.1);
+            --info: #60a5fa;
+            --info-bg: rgba(96, 165, 250, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background effects */
+        .bg-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-gradient::before {
+            content: '';
+            position: absolute;
+            top: -20%;
+            left: -10%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float1 20s ease-in-out infinite;
+        }
+
+        .bg-gradient::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -10%;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float2 25s ease-in-out infinite;
+        }
+
+        @keyframes float1 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(100px, 80px);
+            }
+        }
+
+        @keyframes float2 {
+
+            0%,
+            100% {
+                transform: translate(0, 0);
+            }
+
+            50% {
+                transform: translate(-80px, -60px);
+            }
+        }
+
+        /* Layout */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: inline-block;
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-bright), var(--accent), #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        /* Stats bar */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            flex: 1;
+            min-width: 150px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-number.total {
+            color: var(--accent-bright);
+        }
+
+        .stat-number.problem {
+            color: var(--danger);
+        }
+
+        .stat-number.fixed {
+            color: var(--success);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        /* Actions bar */
+        .actions-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: var(--bg-glass);
+            color: var(--text-primary);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            border-color: var(--border-glow);
+            background: var(--bg-card-hover);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.3));
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(139, 92, 246, 0.4));
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.15);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.3));
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
+        }
+
+        .btn .icon {
+            font-size: 16px;
+        }
+
+        /* Filter toggle */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+            align-items: center;
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        .filter-btn.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: rgba(99, 102, 241, 0.4);
+            color: var(--accent-bright);
+        }
+
+        /* App list */
+        .app-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .app-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: all 0.25s ease;
+            cursor: default;
+        }
+
+        .app-card:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        .app-card.has-problem {
+            border-left: 3px solid var(--danger);
+        }
+
+        .app-card.is-fixed {
+            border-left: 3px solid var(--success);
+        }
+
+        .app-card.is-fixing {
+            border-left: 3px solid var(--warning);
+            animation: fixPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes fixPulse {
+
+            0%,
+            100% {
+                background: var(--bg-card);
+            }
+
+            50% {
+                background: rgba(251, 191, 36, 0.05);
+            }
+        }
+
+        .app-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        .app-card.has-problem .app-icon {
+            background: linear-gradient(135deg, rgba(248, 113, 113, 0.15), rgba(239, 68, 68, 0.15));
+            border-color: rgba(248, 113, 113, 0.2);
+        }
+
+        .app-card.is-fixed .app-icon {
+            background: linear-gradient(135deg, rgba(52, 211, 153, 0.15), rgba(16, 185, 129, 0.15));
+            border-color: rgba(52, 211, 153, 0.2);
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .app-path {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'SF Mono', 'Menlo', monospace;
+        }
+
+        .app-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .status-badge.ok {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        .status-badge.problem {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        .status-badge.fixed {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        .status-badge.fixing {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .fixing .status-dot {
+            animation: blink 1s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .app-fix-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 8px;
+        }
+
+        /* Log panel */
+        .log-panel {
+            margin-top: 28px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .log-header:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .log-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .log-toggle {
+            font-size: 12px;
+            color: var(--text-muted);
+            transition: transform 0.3s;
+        }
+
+        .log-content {
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 16px 20px;
+            font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .log-content.collapsed {
+            display: none;
+        }
+
+        .log-entry {
+            padding: 2px 0;
+            display: flex;
+            gap: 8px;
+        }
+
+        .log-entry .log-time {
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .log-entry .log-cmd {
+            color: var(--accent);
+        }
+
+        .log-entry.success .log-msg {
+            color: var(--success);
+        }
+
+        .log-entry.error .log-msg {
+            color: var(--danger);
+        }
+
+        .log-entry.info .log-msg {
+            color: var(--info);
+        }
+
+        /* Loading / empty states */
+        .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(99, 102, 241, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-state p {
+            font-size: 13px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            display: none;
+            margin-bottom: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 20px;
+        }
+
+        .progress-container.active {
+            display: block;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .progress-info .progress-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .progress-info .progress-percent {
+            color: var(--accent-bright);
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #c084fc);
+            border-radius: 3px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+
+        /* Toast notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 13px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.success {
+            border-color: rgba(52, 211, 153, 0.3);
+        }
+
+        .toast.error {
+            border-color: rgba(248, 113, 113, 0.3);
+        }
+
+        .toast.info {
+            border-color: rgba(96, 165, 250, 0.3);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Guide panel */
+        .guide-panel {
+            margin-top: 20px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            overflow: hidden;
+        }
+
+        .guide-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .guide-header:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .guide-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+
+        .guide-body {
+            padding: 20px;
+            font-size: 13px;
+            line-height: 1.9;
+            color: var(--text-secondary);
+        }
+
+        .guide-body.collapsed {
+            display: none;
+        }
+
+        .guide-step {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+        }
+
+        .guide-step:last-child {
+            margin-bottom: 0;
+        }
+
+        .guide-step h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .guide-step p {
+            margin: 6px 0;
+        }
+
+        .guide-step code {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent-bright);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .guide-step code:hover {
+            background: rgba(99, 102, 241, 0.22);
+        }
+
+        .guide-step .step-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .step-tag.manual {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .step-tag.auto {
+            background: var(--success-bg);
+            color: var(--success);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        .guide-step .step-path {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        .guide-note {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--info-bg);
+            border: 1px solid rgba(96, 165, 250, 0.15);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--info);
+        }
+
+        .guide-warning {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: var(--warning-bg);
+            border: 1px solid rgba(251, 191, 36, 0.15);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--warning);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .stat-card {
+                min-width: auto;
+            }
+
+            .actions-bar {
+                flex-direction: column;
+            }
+
+            .filter-bar {
+                margin-left: 0;
+            }
+
+            .app-card {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-icon">🛠️</div>
+            <h1>macOS 应用修复工具</h1>
+            <p>自动检测修复 "应用已损坏，无法打开" 问题</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-number total" id="stat-total">—</div>
+                <div class="stat-label">总应用数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number problem" id="stat-problem">—</div>
+                <div class="stat-label">需要修复</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number fixed" id="stat-fixed">—</div>
+                <div class="stat-label">已修复</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-bar">
+            <button class="btn btn-primary" onclick="scanApps()" id="btn-scan">
+                <span class="icon">🔍</span> 扫描应用
+            </button>
+            <button class="btn btn-danger" onclick="fixAll()" id="btn-fix-all" disabled>
+                <span class="icon">⚡</span> 一键全部修复
+            </button>
+            <div class="filter-bar">
+                <button class="btn filter-btn active" onclick="setFilter('all', this)" data-filter="all">全部</button>
+                <button class="btn filter-btn" onclick="setFilter('problem', this)" data-filter="problem">需修复</button>
+                <button class="btn filter-btn" onclick="setFilter('ok', this)" data-filter="ok">正常</button>
+            </div>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-container" id="progress-container">
+            <div class="progress-info">
+                <span class="progress-label" id="progress-label">正在修复...</span>
+                <span class="progress-percent" id="progress-percent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+        </div>
+
+        <!-- App list -->
+        <div id="app-list-container">
+            <div class="empty-state">
+                <div class="empty-icon">📱</div>
+                <p>点击「扫描应用」开始检测</p>
+            </div>
+        </div>
+
+        <!-- Log panel -->
+        <div class="log-panel">
+            <div class="log-header" onclick="toggleLog()">
+                <h3>
+                    <span>📋</span> 操作日志
+                    <span id="log-count" style="color: var(--text-muted); font-weight: 400;">(0)</span>
+                </h3>
+                <span class="log-toggle" id="log-toggle">▼</span>
+            </div>
+            <div class="log-content" id="log-content">
+                <div class="log-entry info">
+                    <span class="log-time">[--:--:--]</span>
+                    <span class="log-msg">等待操作...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guide panel -->
+        <div class="guide-panel">
+            <div class="guide-header" onclick="toggleGuide()">
+                <h3>
+                    <span>📖</span> 完整解决方法指引
+                    <span style="color: var(--text-muted); font-weight: 400;">(包含手动步骤)</span>
+                </h3>
+                <span class="log-toggle" id="guide-toggle">▶</span>
+            </div>
+            <div class="guide-body collapsed" id="guide-body">
+                <p style="margin-bottom: 16px; color: var(--text-muted);">一般情况下，只需步骤 1 和 2 即可解决。本工具自动完成步骤 2 和
+                    4，其余步骤需手动操作。</p>
+
+                <div class="guide-step">
+                    <h4>① 允许“任何来源”下载的 App 运行 <span class="step-tag manual">手动</span></h4>
+                    <p>打开终端，执行以下命令（点击可复制）：</p>
+                    <p><code onclick="copyCmd('sudo spctl --master-disable')">sudo spctl --master-disable</code></p>
+                    <p>然后前往系统设置：</p>
+                    <p class="step-path">📍 macOS Monterey 及更早：系统偏好设置 → 安全性与隐私 → 通用 → 勾选「任何来源」</p>
+                    <p class="step-path">📍 macOS Ventura 及以后：系统设置 → 隐私和安全性 → 安全性 → 选择「任何来源」</p>
+                </div>
+
+                <div class="guide-step">
+                    <h4>② 移除应用的安全隔离属性 <span class="step-tag auto">工具自动完成</span></h4>
+                    <p><code
+                            onclick="copyCmd('sudo xattr -dr com.apple.quarantine /Applications/App.app')">sudo xattr -dr com.apple.quarantine /Applications/App.app</code>
+                    </p>
+                    <div class="guide-note">※ 点击上方「一键全部修复」或单个应用的「修复」按钮即可自动执行此步骤。</div>
+                </div>
+
+                <div class="guide-step">
+                    <h4>③ macOS Ventura / Sonoma / Sequoia 额外确认 <span class="step-tag manual">手动</span></h4>
+                    <p>上述步骤完成后，首次打开应用时还需手动确认一次：</p>
+                    <p class="step-path">📍 系统设置 → 隐私和安全性 → 安全性 → 点击下方的「仍要打开」</p>
+                    <div class="guide-note">※ 该操作仅需一次，之后可正常打开。仅适用于 macOS Ventura (13) 及以后版本。</div>
+                </div>
+
+                <div class="guide-step">
+                    <h4>④ 重新签名 <span class="step-tag auto">工具自动完成</span></h4>
+                    <p>如果因证书问题仍无法打开，可尝试重新签名：</p>
+                    <p><code
+                            onclick="copyCmd('codesign --force --deep --sign - /Applications/App.app')">codesign --force --deep --sign - /Applications/App.app</code>
+                    </p>
+                    <div class="guide-note">※ 前提：需安装 Xcode Command Line Tools，终端执行 <code
+                            onclick="copyCmd('xcode-select --install')">xcode-select --install</code></div>
+                </div>
+
+                <div class="guide-step">
+                    <h4>⑤ 覆盖恶意软件保护 <span class="step-tag manual">手动</span></h4>
+                    <p>如果提示「应用将对您的电脑造成伤害」，以上步骤均无效时：</p>
+                    <p class="step-path">📍 访达 → 应用程序 → 右击该应用 → 显示简介 → 勾选「覆盖恶意软件保护」</p>
+                    <div class="guide-warning">⚠️ 正常应用一般不会出现该选项，请确认应用来源安全。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // ============ State ============
+        let allApps = [];
+        let fixedApps = new Set();
+        let currentFilter = 'all';
+        let logEntries = 0;
+        let isScanning = false;
+        let isFixing = false;
+
+        // ============ Logging ============
+        function addLog(message, type = 'info', isCommand = false) {
+            const logContent = document.getElementById('log-content');
+            const now = new Date();
+            const time = now.toTimeString().split(' ')[0];
+
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            if (isCommand) {
+                entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-cmd">$ ${message}</span>`;
+            } else {
+                entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-msg">${message}</span>`;
+            }
+
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+            logEntries++;
+            document.getElementById('log-count').textContent = `(${logEntries})`;
+        }
+
+        function clearLog() {
+            const logContent = document.getElementById('log-content');
+            logContent.innerHTML = '';
+            logEntries = 0;
+            document.getElementById('log-count').textContent = '(0)';
+        }
+
+        function toggleLog() {
+            const content = document.getElementById('log-content');
+            const toggle = document.getElementById('log-toggle');
+            content.classList.toggle('collapsed');
+            toggle.textContent = content.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        function toggleGuide() {
+            const body = document.getElementById('guide-body');
+            const toggle = document.getElementById('guide-toggle');
+            body.classList.toggle('collapsed');
+            toggle.textContent = body.classList.contains('collapsed') ? '▶' : '▼';
+        }
+
+        function copyCmd(cmd) {
+            navigator.clipboard.writeText(cmd).then(() => {
+                showToast('已复制命令到剪贴板', 'success');
+            }).catch(() => {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = cmd;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showToast('已复制命令到剪贴板', 'success');
+            });
+        }
+
+        // ============ Toast ============
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // ============ Progress ============
+        function showProgress(label = '正在处理...') {
+            const container = document.getElementById('progress-container');
+            container.classList.add('active');
+            document.getElementById('progress-label').textContent = label;
+            setProgress(0);
+        }
+
+        function setProgress(percent) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('progress-percent').textContent = Math.round(percent) + '%';
+        }
+
+        function hideProgress() {
+            document.getElementById('progress-container').classList.remove('active');
+        }
+
+        // ============ Stats ============
+        function updateStats() {
+            document.getElementById('stat-total').textContent = allApps.length;
+            const problemCount = allApps.filter(a => a.has_quarantine && !fixedApps.has(a.path)).length;
+            document.getElementById('stat-problem').textContent = problemCount;
+            document.getElementById('stat-fixed').textContent = fixedApps.size;
+
+            const fixAllBtn = document.getElementById('btn-fix-all');
+            fixAllBtn.disabled = problemCount === 0 || isFixing;
+        }
+
+        // ============ Filter ============
+        function setFilter(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+            renderAppList();
+        }
+
+        // ============ Render ============
+        function renderAppList() {
+            const container = document.getElementById('app-list-container');
+
+            if (allApps.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📱</div>
+                        <p>点击「扫描应用」开始检测</p>
+                    </div>`;
+                return;
+            }
+
+            let filtered = allApps;
+            if (currentFilter === 'problem') {
+                filtered = allApps.filter(a => a.has_quarantine && !fixedApps.has(a.path));
+            } else if (currentFilter === 'ok') {
+                filtered = allApps.filter(a => !a.has_quarantine || fixedApps.has(a.path));
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🎉</div>
+                        <p>没有匹配的应用</p>
+                    </div>`;
+                return;
+            }
+
+            let html = '<div class="app-list">';
+            for (const app of filtered) {
+                const isFixed = fixedApps.has(app.path);
+                const hasProblem = app.has_quarantine && !isFixed;
+                const isBeingFixed = app._fixing;
+
+                let cardClass = 'app-card';
+                if (isBeingFixed) cardClass += ' is-fixing';
+                else if (isFixed) cardClass += ' is-fixed';
+                else if (hasProblem) cardClass += ' has-problem';
+
+                let statusBadge = '';
+                let icon = '📦';
+                if (isBeingFixed) {
+                    statusBadge = '<span class="status-badge fixing"><span class="status-dot"></span>修复中</span>';
+                    icon = '⏳';
+                } else if (isFixed) {
+                    statusBadge = '<span class="status-badge fixed"><span class="status-dot"></span>已修复</span>';
+                    icon = '✅';
+                } else if (hasProblem) {
+                    statusBadge = '<span class="status-badge problem"><span class="status-dot"></span>需修复</span>';
+                    icon = '⚠️';
+                } else {
+                    statusBadge = '<span class="status-badge ok"><span class="status-dot"></span>正常</span>';
+                    icon = '✅';
+                }
+
+                const fixBtn = hasProblem && !isBeingFixed
+                    ? `<button class="btn app-fix-btn btn-success" onclick="fixSingle('${app.path.replace(/'/g, "\\'")}')">修复</button>`
+                    : '';
+
+                html += `
+                    <div class="${cardClass}" id="card-${CSS.escape(app.path)}">
+                        <div class="app-icon">${icon}</div>
+                        <div class="app-info">
+                            <div class="app-name">${app.name}</div>
+                            <div class="app-path">${app.path}</div>
+                        </div>
+                        <div class="app-status">
+                            ${statusBadge}
+                            ${fixBtn}
+                        </div>
+                    </div>`;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // ============ API Calls ============
+        async function scanApps() {
+            if (isScanning) return;
+            isScanning = true;
+
+            const btn = document.getElementById('btn-scan');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="icon">⏳</span> 扫描中...';
+
+            document.getElementById('app-list-container').innerHTML = `
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>正在扫描 /Applications 目录...</p>
+                </div>`;
+
+            clearLog();
+            addLog('开始扫描 /Applications 目录...', 'info');
+            addLog('xattr -l /Applications/*.app', 'info', true);
+
+            try {
+                const response = await fetch('/api/scan');
+                const data = await response.json();
+
+                allApps = data.apps;
+                fixedApps.clear();
+
+                addLog(`扫描完成，共发现 ${data.total} 个应用`, 'success');
+                if (data.problem_count > 0) {
+                    addLog(`⚠️ 其中 ${data.problem_count} 个应用存在隔离属性，需要修复`, 'error');
+                } else {
+                    addLog('✅ 所有应用状态正常，无需修复', 'success');
+                }
+
+                updateStats();
+                renderAppList();
+
+                if (data.problem_count > 0) {
+                    showToast(`发现 ${data.problem_count} 个需要修复的应用`, 'error');
+                } else {
+                    showToast('所有应用状态正常 🎉', 'success');
+                }
+            } catch (err) {
+                addLog(`扫描失败: ${err.message}`, 'error');
+                showToast('扫描失败，请检查服务是否正常运行', 'error');
+                document.getElementById('app-list-container').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">❌</div>
+                        <p>扫描失败: ${err.message}</p>
+                    </div>`;
+            } finally {
+                isScanning = false;
+                btn.disabled = false;
+                btn.innerHTML = '<span class="icon">🔍</span> 扫描应用';
+            }
+        }
+
+        async function fixSingle(appPath) {
+            if (isFixing) {
+                showToast('已有修复任务进行中，请稍候', 'info');
+                return;
+            }
+            isFixing = true;
+
+            const app = allApps.find(a => a.path === appPath);
+            if (!app) return;
+
+            app._fixing = true;
+            renderAppList();
+
+            addLog(`开始修复: ${app.name}`, 'info');
+
+            try {
+                const response = await fetch('/api/fix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: appPath, actions: ['quarantine', 'resign'] })
+                });
+                const data = await response.json();
+
+                for (const log of data.logs) {
+                    addLog(log.command, 'info', true);
+                    addLog(log.message, log.success ? 'success' : 'error');
+                }
+
+                if (data.success) {
+                    fixedApps.add(appPath);
+                    showToast(`${data.app_name} 修复成功 ✅`, 'success');
+                    addLog(`✅ ${data.app_name} 修复完成`, 'success');
+                } else {
+                    showToast(`${data.app_name} 修复失败`, 'error');
+                    addLog(`❌ ${data.app_name} 修复失败`, 'error');
+                }
+            } catch (err) {
+                addLog(`修复失败: ${err.message}`, 'error');
+                showToast('修复请求失败', 'error');
+            } finally {
+                app._fixing = false;
+                isFixing = false;
+                updateStats();
+                renderAppList();
+            }
+        }
+
+        async function fixAll() {
+            const problemApps = allApps.filter(a => a.has_quarantine && !fixedApps.has(a.path));
+            if (problemApps.length === 0) {
+                showToast('没有需要修复的应用', 'info');
+                return;
+            }
+
+            if (!confirm(`确定要修复全部 ${problemApps.length} 个应用吗？\n\n将执行以下操作：\n• 移除安全隔离属性\n• 重新签名`)) {
+                return;
+            }
+
+            isFixing = true;
+            const fixAllBtn = document.getElementById('btn-fix-all');
+            fixAllBtn.disabled = true;
+            fixAllBtn.innerHTML = '<span class="icon">⏳</span> 修复中...';
+
+            showProgress(`正在修复 ${problemApps.length} 个应用...`);
+            addLog(`开始批量修复 ${problemApps.length} 个应用...`, 'info');
+
+            let completed = 0;
+
+            for (const app of problemApps) {
+                app._fixing = true;
+                renderAppList();
+
+                addLog(`[${completed + 1}/${problemApps.length}] 修复: ${app.name}`, 'info');
+
+                try {
+                    const response = await fetch('/api/fix', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: app.path, actions: ['quarantine', 'resign'] })
+                    });
+                    const data = await response.json();
+
+                    for (const log of data.logs) {
+                        addLog(log.command, 'info', true);
+                        addLog(log.message, log.success ? 'success' : 'error');
+                    }
+
+                    if (data.success) {
+                        fixedApps.add(app.path);
+                        addLog(`✅ ${app.name} 修复成功`, 'success');
+                    } else {
+                        addLog(`❌ ${app.name} 修复失败`, 'error');
+                    }
+                } catch (err) {
+                    addLog(`❌ ${app.name} 修复出错: ${err.message}`, 'error');
+                }
+
+                app._fixing = false;
+                completed++;
+                setProgress((completed / problemApps.length) * 100);
+                updateStats();
+                renderAppList();
+            }
+
+            hideProgress();
+            isFixing = false;
+            fixAllBtn.innerHTML = '<span class="icon">⚡</span> 一键全部修复';
+            updateStats();
+            renderAppList();
+
+            const fixedCount = fixedApps.size;
+            addLog(`批量修复完成: ${fixedCount} 个成功`, 'success');
+            showToast(`修复完成: ${fixedCount} 个应用已修复 🎉`, 'success');
+        }
+
+        // ============ Init ============
+        // Auto-scan on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            scanApps();
+        });
+    </script>
+</body>
+
+</html>
