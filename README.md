@@ -73,7 +73,7 @@ codesign --force --deep --sign - /Applications/App.app
 
 ### 方法一：双击启动（推荐）
 
-1. [下载 ZIP](https://github.com/你的用户名/macos-app-repair-tool/archive/refs/heads/main.zip) 并解压
+1. [下载 ZIP](https://github.com/rty2218/macOS-unlock-sh/archive/refs/heads/main.zip) 并解压
 2. 在 Finder 中打开解压后的文件夹
 3. **双击 `启动修复工具.command`**
 
@@ -90,8 +90,8 @@ codesign --force --deep --sign - /Applications/App.app
 ### 方法二：命令行启动
 
 ```bash
-git clone https://github.com/你的用户名/macos-app-repair-tool.git
-cd macos-app-repair-tool
+git clone https://github.com/rty2218/macOS-unlock-sh.git
+cd macOS-unlock-sh
 bash start.sh
 ```
 
