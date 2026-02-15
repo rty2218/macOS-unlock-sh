@@ -58,25 +58,23 @@ fi
 
 # ---- 3. 获取管理员权限 ----
 echo -e "${BLUE}[3/4]${NC} 获取管理员权限..."
-echo -e "   ${YELLOW}(将弹出密码输入窗口，请输入您的开机密码)${NC}"
 
-# 使用 osascript 弹出 macOS 原生密码对话框获取 sudo 权限
-# 这样用户不需要在终端里手动输入密码
-if ! sudo -n true 2>/dev/null; then
-    osascript -e 'do shell script "echo sudo_ok" with administrator privileges' > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo -e "   ${YELLOW}⚠️  未获取管理员权限，部分修复功能可能受限${NC}"
-        echo -e "   将以普通权限启动..."
-        USE_SUDO=false
-    else
-        # osascript 获取到权限后，用 sudo -v 刷新 sudo 时间戳
-        sudo -v 2>/dev/null
-        USE_SUDO=true
-        echo -e "   ${GREEN}✅ 管理员权限就绪${NC}"
-    fi
-else
-    USE_SUDO=true
+if sudo -n true 2>/dev/null; then
+    # 已有 sudo 权限（例如最近输入过密码）
     echo -e "   ${GREEN}✅ 管理员权限就绪${NC}"
+    USE_SUDO=true
+else
+    echo -e "   ${YELLOW}请在下方输入您的开机密码（输入时不会显示字符，输完回车即可）：${NC}"
+    echo ""
+    if sudo -v 2>/dev/null; then
+        echo ""
+        echo -e "   ${GREEN}✅ 管理员权限就绪${NC}"
+        USE_SUDO=true
+    else
+        echo ""
+        echo -e "   ${YELLOW}⚠️  未获取管理员权限，部分修复功能可能受限${NC}"
+        USE_SUDO=false
+    fi
 fi
 
 # ---- 4. 启动服务 ----
